@@ -1,4 +1,4 @@
-#BombPartY v0.1 - a PyGame port of the classic wordgame
+#BombPartY v0.2 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -61,6 +61,19 @@ def main():
 					connections.append(networking.accept_wrapper(key.fileobj, sel))
 					connection_users.append(user.user(len(connections)-1)) #creates user object for the connection
 					connections[-1].to_send = dict(type="text/json", encoding="utf-8", content={'connection_no': len(connections)-1, 'timestamp': time.time_ns(), 'data': 'connection'})
+					events2 = sel.select(timeout=1)
+					while not connections[-1].nothing_to_send:
+						for key, mask in events2:
+							message = key.data
+							decode = False
+							try: 
+								potential_decode = message.process_events(mask)
+								if potential_decode:
+									decode = potential_decode
+									
+							except Exception:
+								message.close()
+								print("well fuck")
 				else:
 					conn, addr = key.fileobj.accept()
 					del addr
@@ -90,8 +103,19 @@ def main():
 						json.dump(dict(type="text/json", encoding="utf-8", content={'received_timestamp': time.time_ns(), 'username': decode.get('username'), 'sent_timestamp_claim': decode.get('timestamp')}),save_file, indent=4)
 						
 						connections[connection_no].to_send = current_game.packAll(connection_users[connection_no].seat, connection_users[connection_no].letters)
-						connections[connection_no].queue_message()
-						connections[connection_no]._write()
+						events2 = sel.select(timeout=1)
+						while not connections[connection_no].nothing_to_send:
+							for key, mask in events2:
+								message = key.data
+								decode = False
+								try: 
+									potential_decode = message.process_events(mask)
+									if potential_decode:
+										decode = potential_decode
+										
+								except Exception:
+									message.close()
+									print("well fuck")
 					
 					elif message_type == "game_join":
 						connection_no = int(decode.get('connection_no'))
@@ -151,8 +175,20 @@ def main():
 						
 						for i in range(len(connections)):
 							connections[i].to_send = game_chat.packAll()
-							connections[i].write()
-	
+							events2 = sel.select(timeout=1)
+							while not connections[i].nothing_to_send:
+								for key, mask in events2:
+									message = key.data
+									decode = False
+									try: 
+										potential_decode = message.process_events(mask)
+										if potential_decode:
+											decode = potential_decode
+											
+									except Exception:
+										message.close()
+										print("well fuck")
+										
 		#player dies
 		if current_game.started and not current_game.ended and time.time_ns() > current_game.prompt_start_time + 5000000000:
 			current_game.current_entry = ""
@@ -184,8 +220,19 @@ def main():
 			game_update = False
 			for i in range(len(connections)): #send new entrant data to all players
 				connections[i].to_send = current_game.packAll(connection_users[i].seat, connection_users[i].letters)
-				connections[i].queue_message()
-				connections[i]._write()
+				events2 = sel.select(timeout=1)
+				while not connections[i].nothing_to_send:
+					for key, mask in events2:
+						message = key.data
+						decode = False
+						try: 
+							potential_decode = message.process_events(mask)
+							if potential_decode:
+								decode = potential_decode
+								
+						except Exception:
+							message.close()
+							print("well fuck")
 				
 						
 					

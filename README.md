@@ -13,4 +13,4 @@ Once the server is running, the players connect by
 ip and port are the same as that specified by the server, and username is a distinguishing display name, which will automatically be limited to 20 characters.
 
 ## Limitations
-Currently, the networking code is not sufficient to host on anything other than localhost. This will be fixed in a later version.
+Currently, the game can only be played once through before the server and clients need to be restarted.

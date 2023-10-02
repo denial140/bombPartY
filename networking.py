@@ -1,4 +1,4 @@
-#BombPartY v0.1 - a PyGame port of the classic wordgame
+#BombPartY v0.2 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -32,6 +32,7 @@ def start_connection(host, port, selector):
     events = selectors.EVENT_WRITE | selectors.EVENT_READ
     message = Message(selector, sock, addr)
     selector.register(sock, events, data=message)
+    #print("Connected successfully.")
     return message
 
 def open_connection(host, port, selector):
@@ -71,13 +72,16 @@ class Message:
 
     def _read(self):
         try:
+            #print("attempting to read data")
             data = self.sock.recv(4096)
+            #print("successfully read data")
         except BlockingIOError:
-            print("might be blocking issue")
+            print("might be blocking issue (read)")
             pass
         else:
             if data:
                 self._recv_buffer += data
+                print(data)
             else:
                 raise RuntimeError("Peer closed.")
 
@@ -87,7 +91,7 @@ class Message:
             try:
                 sent = self.sock.send(self._send_buffer)
             except BlockingIOError:
-                print("might be blocking issue")
+                print("might be blocking issue (write)")
                 pass
             else:
                 self._send_buffer = self._send_buffer[sent:]

@@ -1,0 +1,2 @@
+BombPartY v0.2
+-Updated networking handling in game_client.py and game_server.py to allow for latencies greater than localhost
