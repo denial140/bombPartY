@@ -1,4 +1,4 @@
-#BombPartY v0.2.2 - a PyGame port of the classic wordgame
+#BombPartY v0.3 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -134,7 +134,14 @@ class game:
 				self.players[-1].playing = True
 				self.players[-1].username = decode.get('player_usernames')[i]
 				
+		elif decode.get('num_players') < len(self.players): #game restarted
+			self.players = self.players[:decode.get('num_players')]
+			player.playing = False
+		
+		
 		for i in range(len(self.players)): #update lives
 			self.players[i].lives = decode.get('player_lives')[i]
 			
-		
+		#reset word on death
+		if player.seat > -1 and decode.get('player_lives')[player.seat] < player.lives:
+			player.word = ""

@@ -1,4 +1,4 @@
-#BombPartY v0.2.2 - a PyGame port of the classic wordgame
+#BombPartY v0.3 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ def main():
 	"""Hosts games of bombparty"""
 	
 	#License info
-	print("bombPartY v0.2.2 Copyright (C) 2023 Daniel Bassett")
+	print("bombPartY v0.3 Copyright (C) 2023 Daniel Bassett")
 	print("This program comes with ABSOLUTELY NO WARRANTY.")
 	print("This is free software, and you are welcome to redistribute it under certain conditions.")
 	print("See the GNU General Public License for more details.")
@@ -149,22 +149,37 @@ def main():
 							connections[i].sendAll()
 										
 		#player dies
-		if current_game.started and not current_game.ended and time.time_ns() > current_game.prompt_start_time + 5000000000:
-			current_game.current_entry = ""
-			current_game.players[current_game.current_player].lives -= 1
+		if time.time_ns() > current_game.prompt_start_time + 5000000000:
+			if current_game.ended: #Have displayed victory messages long enough; start a new game
+				current_game = game.game()
+				for i in range(len(connections)):
+					connection_users[i].seat = -1
+					connection_users[i].lives = 2
+					connection_users[i].playing = False
+					connection_users[i].word = ""
+					connection_users[i].letters = {"A": True, "B": True, "C": True, "D": True, "E": True, "F": True, "G": True, "H": True, "I": True, "J": True, "K": True, "L": True, "M": True, "N": True, "O": True, "P": True, "Q": True, "R": True, "S": True, "T": True, "U": True, "V": True, "W": True, "Y": True}
+				
+				game_update = True
+				
+			elif current_game.started:
+				current_game.current_entry = ""
+				current_game.players[current_game.current_player].lives -= 1
+				
+				#player out?
+				if current_game.players[current_game.current_player].lives == 0: #check for game end
+					current_game.alive_players -= 1
+					if (len(current_game.players) > 1 and current_game.alive_players == 1) or current_game.alive_players == 0:
+						current_game.ended = True
+						if len(current_game.players) > 1:
+							current_game.findNextAlive() #Set player to the winning player
+				
+				if not current_game.ended:
+					if current_game.findNextAlive(): #Prompt has gone through all live players
+						current_game.generatePrompt()
 			
-			#player out?
-			if current_game.players[current_game.current_player].lives == 0: #check for game end
-				current_game.alive_players -= 1
-				if (len(current_game.players) > 1 and current_game.alive_players == 1) or current_game.alive_players == 0:
-					current_game.ended = True
+				current_game.prompt_start_time = time.time_ns()			
 			
-			if not current_game.ended:
-				if current_game.findNextAlive(): #Prompt has gone through all live players
-					current_game.generatePrompt()
-			
-			current_game.prompt_start_time = time.time_ns()			
-			game_update = True
+				game_update = True
 	
 		if game_update:
 			game_update = False

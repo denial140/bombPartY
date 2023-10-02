@@ -1,4 +1,8 @@
 BombPartY Changelog
+v0.3
+- Can now play multiple games without restarting the program
+- Fixed bug where partial entries carried over on player death
+
 v0.2.2
 - Entered players automatically switch focus to game box when the game starts
 
@@ -8,5 +12,3 @@ v0.2.1
 
 v0.2
 - Updated networking handling in game_client.py and game_server.py to allow for latencies greater than localhost
-
-btw for srcf, 131.111.179.83 port other than 8080 seem to work well

@@ -1,4 +1,4 @@
-#BombPartY v0.2.2 - a PyGame port of the classic wordgame
+#BombPartY v0.3 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -34,7 +34,7 @@ def main():
 	"""Plays games of bombparty"""
 
 	#License info
-	print("bombPartY v0.2.2 Copyright (C) 2023 Daniel Bassett")
+	print("bombPartY v0.3 Copyright (C) 2023 Daniel Bassett")
 	print("This program comes with ABSOLUTELY NO WARRANTY.")
 	print("This is free software, and you are welcome to redistribute it under certain conditions.")
 	print("See the GNU General Public License for more details.")
@@ -223,14 +223,28 @@ def main():
 							pygame.draw.rect(screen, pygame.Color(181,131,90), answer_rect)
 							answer_surface = base_font.render(me.word, True, (255,255,255))
 							screen.blit(answer_surface, (answer_rect.x+20,answer_rect.y+5))
+					
+					else:
+						pygame.draw.rect(screen, pygame.Color(181,131,90), prompt_rect)
+						pygame.draw.rect(screen, pygame.Color(181,131,90), answer_rect)
+						if current_game.current_player == me.seat:
+							prompt_surface = base_font.render("Congratulations! You have won.", True, (255,255,255))
+						else:
+							prompt_surface = base_font.render("Unlucky! The winner is: " + str(current_game.players[current_game.current_player].username), True, (255,255,255))
+						
+						screen.blit(prompt_surface, (prompt_rect.x, prompt_rect.y))
 							
 				elif not me.playing:
 					#Draw join button
 					pygame.draw.rect(screen, pygame.Color(45,35,25), join_rect)
 					join_surface = base_font.render("Join!", True, (255,255,255))
 					screen.blit(join_surface, (join_rect.x+10, join_rect.y+5))
+					
+					pygame.draw.rect(screen, pygame.Color(181,131,90), prompt_rect)
 				
 				else:
+					pygame.draw.rect(screen, pygame.Color(181,131,90), prompt_rect) #
+				
 					#Waiting to play
 					if me.seat == 0:
 						#print(len(current_game.players))

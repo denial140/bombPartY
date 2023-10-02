@@ -1,4 +1,4 @@
-#BombPartY v0.2.2 - a PyGame port of the classic wordgame
+#BombPartY v0.3 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify

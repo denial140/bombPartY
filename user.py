@@ -1,4 +1,4 @@
-#BombPartY v0.2.2 - a PyGame port of the classic wordgame
+#BombPartY v0.3 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -31,7 +31,6 @@ class user:
 		self.seat = -1
 		
 		self.word = ""
-		self.recent = ""
 		
 		self.prompt_received = 0 #stores time that the prompt was received
 	
