@@ -1,4 +1,4 @@
-#BombPartY v0.2.1 - a PyGame port of the classic wordgame
+#BombPartY v0.2.2 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ def main():
 	"""Hosts games of bombparty"""
 	
 	#License info
-	print("bombPartY v0.1 Copyright (C) 2023 Daniel Bassett")
+	print("bombPartY v0.2.2 Copyright (C) 2023 Daniel Bassett")
 	print("This program comes with ABSOLUTELY NO WARRANTY.")
 	print("This is free software, and you are welcome to redistribute it under certain conditions.")
 	print("See the GNU General Public License for more details.")
@@ -98,14 +98,14 @@ def main():
 					
 					elif message_type == "game_join":
 						connection_no = int(decode.get('connection_no'))
-						current_game.players.append(connection_users[connection_no])
-						connection_users[connection_no].playing = True
+						current_game.players.append(connection_users[connection_no]) #this code seems sus
+						connection_users[connection_no].playing = True #like 
 						connection_users[connection_no].seat = len(current_game.players)-1
 												
 						game_update = True
 					
 					elif message_type == "game_start":
-						if connection_users[decode.get('connection_no')].seat == 0:
+						if connection_users[decode.get('connection_no')].seat == 0: #came from right player
 							current_game.started = True
 							current_game.generatePrompt()
 							
@@ -162,7 +162,6 @@ def main():
 			if not current_game.ended:
 				if current_game.findNextAlive(): #Prompt has gone through all live players
 					current_game.generatePrompt()
-				print(current_game.current_player, current_game.prompt, current_game.players[current_game.current_player].lives, current_game.prompt_start_player)
 			
 			current_game.prompt_start_time = time.time_ns()			
 			game_update = True

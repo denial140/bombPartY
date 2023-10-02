@@ -1,4 +1,4 @@
-#BombPartY v0.2.1 - a PyGame port of the classic wordgame
+#BombPartY v0.2.2 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -117,6 +117,9 @@ class game:
 		return dict(type="text/json", encoding="utf-8", content = game_dict)
 	
 	def depackAll(self, decode, player):
+		if self.started != decode.get('started') and player.playing: #When game starts, set priority to game box
+			player.chatting = False
+			
 		self.started = decode.get('started')
 		self.ended = decode.get('ended')
 		self.current_player = decode.get('current_player')
