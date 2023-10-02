@@ -1,2 +1,7 @@
-BombPartY v0.2
--Updated networking handling in game_client.py and game_server.py to allow for latencies greater than localhost
+BombPartY Changelog
+v0.2.1
+- Fixed screen only updating when the window receives an event
+- Refactored networking code and some game code for clarity
+
+v0.2
+- Updated networking handling in game_client.py and game_server.py to allow for latencies greater than localhost

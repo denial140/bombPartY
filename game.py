@@ -1,4 +1,4 @@
-#BombPartY v0.2 - a PyGame port of the classic wordgame
+#BombPartY v0.2.1 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -27,10 +27,12 @@ class game:
 		self.end_time = 0
 		
 		self.players = []
+		self.alive_players = 0
+		
 		self.prompt = ""
-		self.current_player = 0
 		self.prompt_start_player = 0
 		self.prompt_start_time = 0
+		self.current_player = 0
 		
 		self.current_entry = ""
 		
@@ -56,6 +58,9 @@ class game:
 			promptStart = random.randrange(0, wordLength-promptLength)
 			
 			self.prompt = self.dictionary[wordNumber][promptStart:promptStart+promptLength]
+			
+		self.prompt_start_time = time.time_ns()
+		self.prompt_start_player = self.current_player
 		
 	#Check validity of user entry	
 	def checkForPrompt(self, word):
@@ -69,6 +74,7 @@ class game:
 		lower = 0
 		upper = len(self.dictionary)
 		
+		#Checks if word is in dictionary by binary search
 		while upper - lower > 1:
 			if word < self.dictionary[(upper+lower)>>1]:
 				upper = (upper+lower)>>1
@@ -76,6 +82,21 @@ class game:
 				lower = (upper+lower)>>1
 		
 		return word == self.dictionary[lower]
+	
+	def findNextAlive(self):
+		#Sets the current player to the next alive player
+		#Returns True if a new prompt is needed.
+		wrapped = (len(self.players) == 1)
+		self.current_player = (self.current_player + 1) % len(self.players) #move at least one player
+		if self.current_player == self.prompt_start_player:
+			wrapped = True
+		
+		while self.players[self.current_player].lives == 0: #skip to the next if that player is dead
+			self.current_player = (self.current_player + 1) % len(self.players)
+			if self.current_player == self.prompt_start_player:
+				wrapped = True
+		
+		return wrapped
 	
 	#Network helper functions
 	def packAll(self, seatNum, letters): #packs into json for transfer to player in seat seatNum
@@ -112,3 +133,5 @@ class game:
 				
 		for i in range(len(self.players)): #update lives
 			self.players[i].lives = decode.get('player_lives')[i]
+			
+		

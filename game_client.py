@@ -1,4 +1,4 @@
-#BombPartY v0.2 - a PyGame port of the classic wordgame
+#BombPartY v0.2.1 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -94,6 +94,31 @@ def main():
 	screen_update = True
 	connecting_drawn = False
 	while running:
+		#Networking updates
+		decodes = msg.readAll()
+		for decode in decodes:
+			message_type = decode.get('data')
+			print(message_type)
+						
+			if message_type == "connection": #received connection number
+				connection_no = decode.get('connection_no')
+				me = user.user(connection_no)
+				me.chat_message.username = username
+						
+				msg.to_send = dict(type="text/json", encoding="utf-8", content={'username': username, 'timestamp': time.time_ns(), 'data': 'username', 'connection_no': connection_no})
+				msg.write()
+					
+			elif message_type == "full":
+				#print("this should happen") #it isn't happening for god knows what reason. it's showing up as sending.
+				current_game.depackAll(decode, me)
+				screen_update = True
+						
+			elif message_type == "chat":
+				game_chat.depackAll(decode, chat_font)
+				screen_update = True
+		
+		msg.sendAll()
+	
 		#Handle quit, typing etc.
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -173,140 +198,92 @@ def main():
 						game_chat.bottom = True #snap to the bottom
 					
 					screen_update = True
-			
-				#Update screen
-				if screen_update:
-					screen_update = False
+		
+		if me:
+			#Update screen
+			if screen_update:
+				screen_update = False
+				
+				if current_game.started:
+					if not current_game.ended:
+						pygame.draw.rect(screen, pygame.Color(181,131,90), prompt_rect)
+						prompt_surface = base_font.render("Quick! Type an English word containing " + current_game.prompt, True, (255,255,255))
+						screen.blit(prompt_surface, (prompt_rect.x, prompt_rect.y))
 					
-					if current_game.started:
-						if not current_game.ended:
-							pygame.draw.rect(screen, pygame.Color(181,131,90), prompt_rect)
-							prompt_surface = base_font.render("Quick! Type an English word containing " + current_game.prompt, True, (255,255,255))
-							screen.blit(prompt_surface, (prompt_rect.x, prompt_rect.y))
-						
-							if current_game.current_player == me.seat:
-								#Draw answer entry rectangle
-								pygame.draw.rect(screen, pygame.Color(45,35,25), answer_rect)
-								answer_surface = base_font.render(me.word, True, (255,255,255))
-								screen.blit(answer_surface, (answer_rect.x+20,answer_rect.y+5))
-							else:
-								pygame.draw.rect(screen, pygame.Color(181,131,90), answer_rect)
-								answer_surface = base_font.render(me.word, True, (255,255,255))
-								screen.blit(answer_surface, (answer_rect.x+20,answer_rect.y+5))
-								
-					elif not me.playing:
-						#Draw join button
-						pygame.draw.rect(screen, pygame.Color(45,35,25), join_rect)
-						join_surface = base_font.render("Join!", True, (255,255,255))
-						screen.blit(join_surface, (join_rect.x+10, join_rect.y+5))
-					
-					else:
-						#Waiting to play
-						if me.seat == 0:
-							#print(len(current_game.players))
-							pygame.draw.rect(screen, pygame.Color(45,35,25), join_rect)
-							join_surface = base_font.render("Start!", True, (255,255,255))
-							screen.blit(join_surface, (join_rect.x+10, join_rect.y+5))
+						if current_game.current_player == me.seat:
+							#Draw answer entry rectangle
+							pygame.draw.rect(screen, pygame.Color(45,35,25), answer_rect)
+							answer_surface = base_font.render(me.word, True, (255,255,255))
+							screen.blit(answer_surface, (answer_rect.x+20,answer_rect.y+5))
 						else:
-							pygame.draw.rect(screen, pygame.Color(181, 131, 90), join_rect)
-					
-					#Draw previous chat messages
-					chat_surface_full = pygame.Surface((360, game_chat.height))
-					pygame.draw.rect(chat_surface_full, pygame.Color(90,65,45), (pygame.Rect(0,0, chat_rect.w, chat_rect.h)))
-					y = 0
-					
-					for chatMsg in game_chat.messages: #Draws the full chat history
-						y = chatMsg.drawText(chat_font, chat_surface_full, y) + 5
-					
-					chat_display_rect = pygame.Rect(0, game_chat.scrollY, 360,540) #Selects the part of the chat for the player's current scrolling value
-					chat_surface_display = chat_surface_full.subsurface(chat_display_rect) 
-					
-					screen.blit(chat_surface_display, (chat_rect.x, chat_rect.y))
-					
-					#Draw current chat message
-					chat_message_surface = pygame.Surface((360, 180))
-					pygame.draw.rect(chat_message_surface, pygame.Color(45,35,25), pygame.Rect(0,0, chat_message_rect.w, chat_message_rect.h)) #why is this not doing anything
-					me.chat_message.drawText(chat_font, chat_message_surface, 5)
-					screen.blit(chat_message_surface, (chat_message_rect.x, chat_message_rect.y))
-					
-					#Draw players remaining letters
-					pygame.draw.rect(screen, pygame.Color(181,131,90), letter_rect)
-					for i in range(24):
-						letter_surface = base_font.render(letter_list[i], True, (255,255,255))
-						x = 1000
-						if i >= 12:
-							x += 40
+							pygame.draw.rect(screen, pygame.Color(181,131,90), answer_rect)
+							answer_surface = base_font.render(me.word, True, (255,255,255))
+							screen.blit(answer_surface, (answer_rect.x+20,answer_rect.y+5))
 							
-						if me.letters[letter_list[i]]:
-							screen.blit(letter_surface, (x, 40*(i%12)))
-					
-					#List entrant names
-					pygame.draw.rect(screen, pygame.Color(181,131,90), player_rect)
-					for i in range(len(current_game.players)):
-						player_string = str(i)+" "+current_game.players[i].username+" "+str(current_game.players[i].lives)
-						if i == current_game.current_player:
-							player_string += " < " + current_game.current_entry
-						entrant_surface = base_font.render(player_string, True, (255,255,255))
-						screen.blit(entrant_surface, (0,32*i))
-					
-					pygame.display.flip()
+				elif not me.playing:
+					#Draw join button
+					pygame.draw.rect(screen, pygame.Color(45,35,25), join_rect)
+					join_surface = base_font.render("Join!", True, (255,255,255))
+					screen.blit(join_surface, (join_rect.x+10, join_rect.y+5))
+				
+				else:
+					#Waiting to play
+					if me.seat == 0:
+						#print(len(current_game.players))
+						pygame.draw.rect(screen, pygame.Color(45,35,25), join_rect)
+						join_surface = base_font.render("Start!", True, (255,255,255))
+						screen.blit(join_surface, (join_rect.x+10, join_rect.y+5))
+					else:
+						pygame.draw.rect(screen, pygame.Color(181, 131, 90), join_rect)
+				
+				#Draw previous chat messages
+				chat_surface_full = pygame.Surface((360, game_chat.height))
+				pygame.draw.rect(chat_surface_full, pygame.Color(90,65,45), (pygame.Rect(0,0, chat_rect.w, chat_rect.h)))
+				y = 0
+				
+				for chatMsg in game_chat.messages: #Draws the full chat history
+					y = chatMsg.drawText(chat_font, chat_surface_full, y) + 5
+				
+				chat_display_rect = pygame.Rect(0, game_chat.scrollY, 360,540) #Selects the part of the chat for the player's current scrolling value
+				chat_surface_display = chat_surface_full.subsurface(chat_display_rect) 
+				
+				screen.blit(chat_surface_display, (chat_rect.x, chat_rect.y))
+				
+				#Draw current chat message
+				chat_message_surface = pygame.Surface((360, 180))
+				pygame.draw.rect(chat_message_surface, pygame.Color(45,35,25), pygame.Rect(0,0, chat_message_rect.w, chat_message_rect.h)) #why is this not doing anything
+				me.chat_message.drawText(chat_font, chat_message_surface, 5)
+				screen.blit(chat_message_surface, (chat_message_rect.x, chat_message_rect.y))
+				
+				#Draw players remaining letters
+				pygame.draw.rect(screen, pygame.Color(181,131,90), letter_rect)
+				for i in range(24):
+					letter_surface = base_font.render(letter_list[i], True, (255,255,255))
+					x = 1000
+					if i >= 12:
+						x += 40
 						
-		#Networking updates
-		events = sel.select(timeout=1)
-		while not msg.nothing_to_send:
-			for key, mask in events:
-				message = key.data
-				decode = False
-				try: 
-					potential_decode = message.process_events(mask)
-					if potential_decode:
-						decode = potential_decode
-						
-				except Exception:
-					message.close()
-					print("well fuck")
+					if me.letters[letter_list[i]]:
+						screen.blit(letter_surface, (x, 40*(i%12)))
+				
+				#List entrant names
+				pygame.draw.rect(screen, pygame.Color(181,131,90), player_rect)
+				for i in range(len(current_game.players)):
+					player_string = str(i)+" "+current_game.players[i].username+" "+str(current_game.players[i].lives)
+					if i == current_game.current_player:
+						player_string += " < " + current_game.current_entry
+					entrant_surface = base_font.render(player_string, True, (255,255,255))
+					screen.blit(entrant_surface, (0,32*i))
+				
+				pygame.display.flip()
 		
-		
-		events = sel.select(timeout=1)	
-		for key, mask in events:
-			message = key.data
-			decode = False
-			try: 
-				potential_decode = message.process_events(mask)
-				if potential_decode:
-					decode = potential_decode
-					
-			except Exception:
-				message.close()
-				print("well fuck")
-			
-			if decode:
-				message_type = decode.get('data')
-				print(message_type)
-						
-				if message_type == "connection": #received connection number
-					connection_no = decode.get('connection_no')
-					me = user.user(connection_no)
-					me.chat_message.username = username
-						
-					msg.to_send = dict(type="text/json", encoding="utf-8", content={'username': username, 'timestamp': time.time_ns(), 'data': 'username', 'connection_no': connection_no})
-					msg.write()
-					
-				elif message_type == "full":
-					#print("this should happen") #it isn't happening for god knows what reason. it's showing up as sending.
-					current_game.depackAll(decode, me)
-					screen_update = True
-						
-				elif message_type == "chat":
-					game_chat.depackAll(decode, chat_font)
-					screen_update = True
-		
-		#New frame
+
 		if not connecting_drawn:
 			connecting_surface = base_font.render("Connecting...", True, (255,255,255))
 			screen.blit(connecting_surface, (0,0))
 			connecting_drawn = True
-		pygame.display.flip()
+		
+		#New frame			
 		clock.tick(FPS)
 	
 

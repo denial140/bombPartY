@@ -1,4 +1,4 @@
-#BombPartY v0.2 - a PyGame port of the classic wordgame
+#BombPartY v0.2.1 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -61,19 +61,7 @@ def main():
 					connections.append(networking.accept_wrapper(key.fileobj, sel))
 					connection_users.append(user.user(len(connections)-1)) #creates user object for the connection
 					connections[-1].to_send = dict(type="text/json", encoding="utf-8", content={'connection_no': len(connections)-1, 'timestamp': time.time_ns(), 'data': 'connection'})
-					events2 = sel.select(timeout=1)
-					while not connections[-1].nothing_to_send:
-						for key, mask in events2:
-							message = key.data
-							decode = False
-							try: 
-								potential_decode = message.process_events(mask)
-								if potential_decode:
-									decode = potential_decode
-									
-							except Exception:
-								message.close()
-								print("well fuck")
+					connections[-1].sendAll()
 				else:
 					conn, addr = key.fileobj.accept()
 					del addr
@@ -102,40 +90,27 @@ def main():
 						connection_users[connection_no].username = username
 						json.dump(dict(type="text/json", encoding="utf-8", content={'received_timestamp': time.time_ns(), 'username': decode.get('username'), 'sent_timestamp_claim': decode.get('timestamp')}),save_file, indent=4)
 						
+						#Send current game and chat data to new user
 						connections[connection_no].to_send = current_game.packAll(connection_users[connection_no].seat, connection_users[connection_no].letters)
-						events2 = sel.select(timeout=1)
-						while not connections[connection_no].nothing_to_send:
-							for key, mask in events2:
-								message = key.data
-								decode = False
-								try: 
-									potential_decode = message.process_events(mask)
-									if potential_decode:
-										decode = potential_decode
-										
-								except Exception:
-									message.close()
-									print("well fuck")
+						connections[connection_no].sendAll()
+						connections[connection_no].to_send = game_chat.packAll()
+						connections[connection_no].sendAll()
 					
 					elif message_type == "game_join":
 						connection_no = int(decode.get('connection_no'))
 						current_game.players.append(connection_users[connection_no])
 						connection_users[connection_no].playing = True
 						connection_users[connection_no].seat = len(current_game.players)-1
-						
-						#connections[connection_no].to_send = dict(type="text/json", encoding="utf-8", content={'data': 'seat', 'seat': connection_users[connection_no].seat})
-						#connections[connection_no].queue_message()
-						#connections[connection_no]._write()
-						
+												
 						game_update = True
 					
 					elif message_type == "game_start":
 						if connection_users[decode.get('connection_no')].seat == 0:
 							current_game.started = True
 							current_game.generatePrompt()
-							current_game.prompt_start_time = time.time_ns()
 							
 							current_game.current_player = 0
+							current_game.alive_players = len(current_game.players)
 							
 							game_update = True
 					
@@ -148,24 +123,20 @@ def main():
 					
 					elif message_type == "solve":
 						connection_no = int(decode.get('connection_no'))
+						solve_attempt = decode.get('word')
+						
 						if connection_users[connection_no].seat == current_game.current_player:
 							current_game.current_entry = ""
-							if current_game.checkForPrompt(decode.get('word')):
-								print("word contains prompt")
-								if current_game.checkDictionary(decode.get('word')):
-									print("word in dictionary")
-									if not (decode.get('word') in current_game.used_words):
-										print("word not used before")
-										current_game.players[current_game.current_player].updateLetters(decode.get('word'))
-											
-										current_game.current_player = (current_game.current_player + 1) % len(current_game.players)
+							
+							#check if solve_attempt is successful:
+							if current_game.checkForPrompt(solve_attempt):
+								if current_game.checkDictionary(solve_attempt):
+									if not (solve_attempt in current_game.used_words): #solve_attempt successful
+										current_game.players[current_game.current_player].updateLetters(solve_attempt)
+										current_game.used_words.append(solve_attempt)
 										
-										while current_game.players[current_game.current_player].lives == 0: #skip to next live player
-											current_game.current_player = (current_game.current_player + 1) % len(current_game.players)
+										current_game.findNextAlive()
 										current_game.generatePrompt()
-										current_game.prompt_start_player = current_game.current_player
-										current_game.prompt_start_time = time.time_ns()
-										current_game.used_words.append(decode.get('word'))
 										
 										game_update = True
 					
@@ -173,67 +144,34 @@ def main():
 						connection_no = int(decode.get('connection_no'))
 						game_chat.messages.append(chat.message(decode.get('message'), connection_users[connection_no].username))
 						
-						for i in range(len(connections)):
+						for i in range(len(connections)): #send new chat message to everyone
 							connections[i].to_send = game_chat.packAll()
-							events2 = sel.select(timeout=1)
-							while not connections[i].nothing_to_send:
-								for key, mask in events2:
-									message = key.data
-									decode = False
-									try: 
-										potential_decode = message.process_events(mask)
-										if potential_decode:
-											decode = potential_decode
-											
-									except Exception:
-										message.close()
-										print("well fuck")
+							connections[i].sendAll()
 										
 		#player dies
 		if current_game.started and not current_game.ended and time.time_ns() > current_game.prompt_start_time + 5000000000:
 			current_game.current_entry = ""
 			current_game.players[current_game.current_player].lives -= 1
+			
+			#player out?
 			if current_game.players[current_game.current_player].lives == 0: #check for game end
-				alive_count = 0
-				for i in range(len(current_game.players)):
-					if current_game.players[i].lives > 0:
-						alive_count += 1
-				
-				if alive_count == 1:
+				current_game.alive_players -= 1
+				if (len(current_game.players) > 1 and current_game.alive_players == 1) or current_game.alive_players == 0:
 					current_game.ended = True
 			
 			if not current_game.ended:
-				current_game.current_player = (current_game.current_player + 1) % len(current_game.players)
-				if current_game.current_player == current_game.prompt_start_player: #Prompt has gone through all players
-						current_game.generatePrompt()
-				
-				while current_game.players[current_game.current_player].lives == 0: #skip to next live player
-					current_game.current_player = (current_game.current_player + 1) % len(current_game.players)
-					if current_game.current_player == current_game.prompt_start_player: #Prompt has gone through all players
-						current_game.generatePrompt()
-					
-				current_game.prompt_start_time = time.time_ns()
+				if current_game.findNextAlive(): #Prompt has gone through all live players
+					current_game.generatePrompt()
+				print(current_game.current_player, current_game.prompt, current_game.players[current_game.current_player].lives, current_game.prompt_start_player)
 			
+			current_game.prompt_start_time = time.time_ns()			
 			game_update = True
 	
 		if game_update:
 			game_update = False
 			for i in range(len(connections)): #send new entrant data to all players
 				connections[i].to_send = current_game.packAll(connection_users[i].seat, connection_users[i].letters)
-				events2 = sel.select(timeout=1)
-				while not connections[i].nothing_to_send:
-					for key, mask in events2:
-						message = key.data
-						decode = False
-						try: 
-							potential_decode = message.process_events(mask)
-							if potential_decode:
-								decode = potential_decode
-								
-						except Exception:
-							message.close()
-							print("well fuck")
-				
+				connections[i].sendAll()
 						
 					
 					

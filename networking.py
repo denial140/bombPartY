@@ -1,4 +1,4 @@
-#BombPartY v0.2 - a PyGame port of the classic wordgame
+#BombPartY v0.2.1 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -231,3 +231,28 @@ class Message:
         elif self._send_buffer:
             return False
         return True
+        
+    def readAll(self):
+        decodes = []
+        events = self.selector.select(timeout=1)
+        for key, mask in events:
+            message = key.data
+            decode = False
+            try: 
+                potential_decode = message.process_events(mask)
+                if potential_decode:
+                    decode = potential_decode
+
+            except Exception:
+                message.close()
+            
+            if decode:
+                decodes.append(decode)
+                
+        return decodes
+    
+    def sendAll(self):
+        while not self.nothing_to_send:
+            self.readAll()
+    
+    
