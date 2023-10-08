@@ -1,4 +1,4 @@
-#BombPartY v0.3 - a PyGame port of the classic wordgame
+#BombPartY v0.3.1 - a PyGame port of the classic wordgame
 #Copyright (C) 2023 Daniel Bassett
 
 #This program is free software: you can redistribute it and/or modify
@@ -29,7 +29,7 @@ def main():
 	"""Hosts games of bombparty"""
 	
 	#License info
-	print("bombPartY v0.3 Copyright (C) 2023 Daniel Bassett")
+	print("bombPartY v0.3.1 Copyright (C) 2023 Daniel Bassett")
 	print("This program comes with ABSOLUTELY NO WARRANTY.")
 	print("This is free software, and you are welcome to redistribute it under certain conditions.")
 	print("See the GNU General Public License for more details.")
@@ -177,7 +177,7 @@ def main():
 					if current_game.findNextAlive(): #Prompt has gone through all live players
 						current_game.generatePrompt()
 			
-				current_game.prompt_start_time = time.time_ns()			
+				current_game.prompt_start_time = time.time_ns()	
 			
 				game_update = True
 	

@@ -1,4 +1,7 @@
 BombPartY Changelog
+v0.3.1
+- Fixed bug where clearing partial entries on player death caused it to be constantly cleared
+
 v0.3
 - Can now play multiple games without restarting the program
 - Fixed bug where partial entries carried over on player death
